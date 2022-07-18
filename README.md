@@ -179,7 +179,7 @@ Depending on the transition effect, you may want the transition to carry into a 
 
 ```js
 router.goto('level1', {
-  transition: new Fade({
+  transition: new FadeTransition({
     persistOnLoading: true,
   }),
 })
@@ -189,7 +189,7 @@ You can also provide a number value instead, which will persist the transition f
 
 ```js
 router.goto('level1', {
-  transition: new Fade({
+  transition: new FadeTransition({
     // if loading takes longer than 200ms, fade back in to show loading scene
     persistOnLoading: 200,
   }),
