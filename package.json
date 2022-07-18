@@ -1,6 +1,6 @@
 {
   "name": "excalibur-router",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A scene router for Excaliburjs",
   "type": "module",
   "main": "dist/excalibur-router.umd.cjs",
@@ -8,6 +8,7 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/excalibur-router.js",
       "require": "./dist/excalibur-router.umd.cjs"
     }
