@@ -48,8 +48,8 @@ export class CrossFadeTransition extends Transition {
               engine.canvasHeight,
               0,
               0,
-              engine.canvasWidth / window.devicePixelRatio,
-              engine.canvasHeight / window.devicePixelRatio
+              engine.canvasWidth / engine.pixelRatio,
+              engine.canvasHeight / engine.pixelRatio
             )
           }
         },
