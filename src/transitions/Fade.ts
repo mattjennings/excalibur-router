@@ -31,6 +31,9 @@ export class FadeTransition extends Transition {
 
     this.el.graphics.opacity = this.isOutro ? 0 : 1
     this.addChild(this.el)
+
+    // temp fix for https://github.com/excaliburjs/Excalibur/issues/2419
+    this.el.scene = this.scene
   }
 
   onIntroStart() {
