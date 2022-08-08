@@ -1,4 +1,5 @@
 import type { Scene } from 'excalibur'
+import { Class } from 'excalibur'
 import { DefaultLoader } from './DefaultLoader.js'
 import { ResourceLoader } from './ResourceLoader.js'
 import type { Transition } from './transitions/Transition.js'
@@ -19,7 +20,7 @@ type Route =
 export class Router<
   Routes extends Record<string, Route>,
   Loaders extends Record<string, typeof Scene>
-> {
+> extends Class {
   engine: ex.Engine
   routes: Routes
 
@@ -28,13 +29,24 @@ export class Router<
 
   private resourceLoader = new ResourceLoader()
   private loaders: Loaders
-  private defaultLoader: Extract<keyof Loaders, string> | undefined
 
   constructor(args: RouterArgs<Routes, Loaders>) {
+    super()
     this.routes = args.routes
     this.loaders = {
       default: DefaultLoader,
       ...args.loaders,
+    }
+  }
+
+  get location() {
+    const name = Object.keys(this.routes).find((key) => {
+      return this.engine.scenes[key] === this.engine.currentScene
+    })
+
+    return {
+      name,
+      scene: this.engine.currentScene,
     }
   }
 
@@ -55,6 +67,20 @@ export class Router<
     return engine.start(null)
   }
 
+  addRoute(name: string, route: Route) {
+    // @ts-ignore
+    this.routes[name] = route
+
+    if (isScene(route)) {
+      this.engine.add(name, new route())
+    }
+  }
+
+  removeRoute(name: string) {
+    delete this.routes[name]
+    delete this.engine.scenes[name]
+  }
+
   async goto<Data = any>(
     name: Extract<keyof Routes, string>,
     options: {
@@ -64,7 +90,11 @@ export class Router<
       onActivate?: (scene: Scene) => void
     } = {}
   ) {
-    const transition = options.transition
+    this.emit('navigationstart', { to: name, ...options })
+    if (this.engine.currentScene.transition) {
+      this.engine.currentScene.transition.kill()
+    }
+    this.engine.currentScene.transition = options.transition
     let scene = this.engine.scenes[name] as Scene
 
     // check if scene exists
@@ -77,7 +107,7 @@ export class Router<
     } else {
       await this.executeTransition({
         type: 'outro',
-        transition,
+        transition: this.engine.currentScene.transition,
       })
     }
 
@@ -86,13 +116,22 @@ export class Router<
     })
 
     this.engine.goToScene(name, options.data)
+    this.emit('navigation', {
+      to: name,
+      ...options,
+    })
 
     // play intro transition
     await this.executeTransition({
       type: 'intro',
-      transition,
+      transition: this.engine.currentScene.transition,
     })
+    this.engine.currentScene.transition = null
 
+    this.emit('navigationend', {
+      to: name,
+      ...options,
+    })
     this.isBooting = false
     return scene
   }
@@ -183,7 +222,7 @@ export class Router<
       if (!this.isBooting && transition) {
         // carry transition instance into loading scene
         if (transition.persistOnLoading !== false) {
-          this.engine.add(transition)
+          this.engine.currentScene.add(transition)
         }
 
         if (typeof transition.persistOnLoading === 'number') {
@@ -209,7 +248,7 @@ export class Router<
       if (shouldOutro) {
         // transition won't have been added yet if booting
         if (this.isBooting) {
-          this.engine.add(transition)
+          this.engine.currentScene.add(transition)
         }
 
         await this.executeTransition({
@@ -252,7 +291,7 @@ export class Router<
     if (transition) {
       this.isTransitioning = true
       scene.isTransitioning = true
-      scene.engine.add(transition)
+      scene.add(transition)
 
       if (type === 'outro') {
         scene.onOutroStart?.()
