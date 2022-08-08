@@ -1,9 +1,7 @@
-import type * as Excalibur from 'excalibur'
+import type { Transition } from './transitions/Transition.js'
 
-// for some reason, this fixes module augmentation from replacing excalibur
-// instead of merging
 declare global {
-  export type ex = typeof Excalibur
+  namespace ex {}
 }
 
 declare module 'excalibur' {
