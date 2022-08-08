@@ -14,14 +14,9 @@ A scene router for [Excalibur](https://excaliburjs.com).
 npm install excalibur-router
 ```
 
-```js
-import * as ex from 'excalibur'
+```ts
+// router.ts
 import { Router } from 'excalibur-router'
-
-const engine = new ex.Engine({
-  width: 800,
-  height: 600,
-})
 
 class Level1 extends ex.Scene {}
 class Level2 extends ex.Scene {}
@@ -32,6 +27,17 @@ const router = new Router({
     level2: Level2,
   },
 })
+```
+
+```ts
+// game.ts
+import * as ex from 'excalibur'
+import { router } from './router'
+
+const engine = new ex.Engine({
+  width: 800,
+  height: 600,
+})
 
 router.start(engine).then(() => {
   router.goto('level1')
@@ -40,9 +46,9 @@ router.start(engine).then(() => {
 
 ## Loaders
 
-Router repurposes Loaders to act as scenes. Resources can be loaded using `router.addResource(resources)` and they will be loaded automatically during scene navigation.
+Router repurposes Loaders to act as scenes. Resources can be queued with `router.addResource(resources)` and they will be loaded automatically during the next scene navigation.
 
-When loading, the router temporarily navigates to the loading scene and continues to the target once loading has completed. Router has a default loading scene, but you can provide your own:
+When loading, the router temporarily navigates to the loading scene and continues to the target once loading has completed. There is a default loading scene, but you can provide your own:
 
 ```js
 class LoadingScene extends ex.Scene {
@@ -83,28 +89,17 @@ router.goto('level1', {
 })
 ```
 
-## Dynamic Scene Loading
+## Lazy Loading
 
-Scenes can be imported dynamically as routes, which will then trigger a loading scene when navigated to. If these scenes contain any `router.addResource()` calls or import files that do, they will get loaded in the same loading screen.
+Scene routes may be defined using dynamic imports which will cause them to be loaded lazily. If these scenes contain any `router.addResource()` calls (or import files that do), they will be loaded as well.
+
+_Note: you must be using a bundler that supports dynamic imports, such as Vite or Webpack_
 
 ```js
-import * as ex from 'excalibur'
-import { Router } from 'excalibur-router'
-
-const engine = new ex.Engine({
-  width: 800,
-  height: 600,
-})
-
 const router = new Router({
   routes: {
-    level1: () => import('./level1'), // contains default export of scene
-    level2: () => import('./level2'),
+    level1: () => import('./level1'), // contains a default export of Scene
   },
-})
-
-router.start(engine).then(() => {
-  router.goto('level1')
 })
 ```
 
@@ -195,6 +190,32 @@ router.goto('level1', {
   }),
 })
 ```
+
+### Blocking Input during Transition
+
+You likely will want to block user input during a transition, as the Scene remains running as usual while the transition is happening. You can check if the transition is in progress by checking `router.isTransitioning` or `scene.isTransitioning`.
+
+```js
+onPreUpdate(engine) {
+  if (this.scene.isTransitioning) {
+    return
+  }
+
+  // ...
+}
+```
+
+## Events
+
+Router emits the following events:
+
+| Event Name        | Description                                                                    |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `navigationstart` | navigation has started (before outro transition & loading scene)               |
+| `navigation`      | the scene has been navigated to (after loading scene, before intro transition) |
+| `navigationend`   | navigation has completed (after loading scene & intro transition)              |
+
+They each contain target scene and goto() arguments.
 
 ## Examples
 
