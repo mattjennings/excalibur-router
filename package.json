@@ -21,7 +21,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "vite build --watch --minify false",
     "build": "vite build",
     "release": "npm run build && npm publish --access public"
   },
