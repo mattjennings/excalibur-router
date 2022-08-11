@@ -90,11 +90,12 @@ export class Router<
       onActivate?: (scene: Scene) => void
     } = {}
   ) {
+    const transition = options.transition
     this.emit('navigationstart', { to: name, ...options })
     if (this.engine.currentScene.transition) {
       this.engine.currentScene.transition.kill()
     }
-    this.engine.currentScene.transition = options.transition
+    this.engine.currentScene.transition = transition
     let scene = this.engine.scenes[name] as Scene
 
     // check if scene exists
@@ -107,7 +108,7 @@ export class Router<
     } else {
       await this.executeTransition({
         type: 'outro',
-        transition: this.engine.currentScene.transition,
+        transition,
       })
     }
 
@@ -124,7 +125,7 @@ export class Router<
     // play intro transition
     await this.executeTransition({
       type: 'intro',
-      transition: this.engine.currentScene.transition,
+      transition,
     })
     this.engine.currentScene.transition = null
 
