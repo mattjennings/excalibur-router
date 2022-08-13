@@ -1,4 +1,4 @@
-import { Scene } from 'excalibur'
+import type { Scene } from 'excalibur'
 import { Class } from 'excalibur'
 import { DefaultLoader } from './DefaultLoader.js'
 import { ResourceLoader } from './ResourceLoader.js'
@@ -302,9 +302,6 @@ export class Router<
       )
     }
 
-    const key = '______restart______'
-    this.addRoute(key, Scene)
-
     await this.executeTransition({
       type: 'outro',
       transition: options.transition,
@@ -312,7 +309,6 @@ export class Router<
 
     const oldScene = this.engine.currentScene
     this.engine.remove(oldScene)
-    delete this.engine.scenes[key]
     this.addRoute(name as string, this.routes[name])
 
     await this.goto(name as any, {
