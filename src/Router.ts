@@ -1,4 +1,4 @@
-import type { Scene } from 'excalibur'
+import { Scene } from 'excalibur'
 import { Class } from 'excalibur'
 import { DefaultLoader } from './DefaultLoader.js'
 import { ResourceLoader } from './ResourceLoader.js'
@@ -30,6 +30,11 @@ export class Router<
   private resourceLoader = new ResourceLoader()
   private loaders: Loaders
 
+  private lastGoto: {
+    name: keyof Routes
+    data?: any
+  }
+
   constructor(args: RouterArgs<Routes, Loaders>) {
     super()
     this.routes = args.routes
@@ -40,11 +45,18 @@ export class Router<
   }
 
   get location() {
-    const name = Object.keys(this.routes).find((key) => {
+    const name: keyof Routes = Object.keys(this.routes).find((key) => {
       return this.engine.scenes[key] === this.engine.currentScene
     })
 
+    if (!name) {
+      console.warn(
+        `Unable to determine name for current scene, was it loaded outside of the router?`
+      )
+    }
+
     return {
+      ...this.lastGoto,
       name,
       scene: this.engine.currentScene,
     }
@@ -117,6 +129,8 @@ export class Router<
     })
 
     this.engine.goToScene(name, options.data)
+    this.lastGoto = { name, data: options.data }
+
     this.emit('navigation', {
       to: name,
       ...options,
@@ -268,6 +282,49 @@ export class Router<
     return this.resourceLoader.addResources(
       Array.isArray(loadable) ? loadable : [loadable]
     )
+  }
+
+  /**
+   * Restarts the current scene. Scene will re-use activation data
+   * unless provided.
+   */
+  async restartScene<Data = any>(
+    options: {
+      data?: Data
+      loader?: Extract<keyof Loaders, string>
+      transition?: Transition
+    } = {}
+  ) {
+    const name = this.lastGoto.name
+    if (!name) {
+      throw new Error(
+        `Scene was not navigated to using router, unable to restart.`
+      )
+    }
+
+    const key = '______restart______'
+    this.addRoute(key, Scene)
+
+    await this.executeTransition({
+      type: 'outro',
+      transition: options.transition,
+    })
+
+    const oldScene = this.engine.currentScene
+    this.engine.remove(oldScene)
+    delete this.engine.scenes[key]
+    this.addRoute(name as string, this.routes[name])
+
+    await this.goto(name as any, {
+      ...options,
+      transition: null,
+      data: options.data ?? this.lastGoto.data,
+    })
+
+    await this.executeTransition({
+      type: 'intro',
+      transition: options.transition,
+    })
   }
 
   private sceneNeedsLoading(name: string) {
